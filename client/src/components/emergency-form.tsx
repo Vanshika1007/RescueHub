@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Send, Clock, AlertTriangle, Zap } from "lucide-react";
+import { MapPin, Send, Clock, AlertTriangle, Zap, Mic, MicOff, Play, Square } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -18,8 +18,15 @@ export default function EmergencyForm() {
     description: "",
     location: "",
     peopleCount: 1,
+    coordinates: null as { lat: number; lng: number } | null,
     userId: "temp-user-id", // In a real app, this would come from auth context
   });
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const mediaRecorder = useRef<MediaRecorder | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -28,7 +35,7 @@ export default function EmergencyForm() {
     mutationFn: async (data: typeof formData) => {
       return await apiRequest("POST", "/api/emergency-requests", {
         ...data,
-        coordinates: null, // Would be populated by geolocation in real implementation
+        coordinates: data.coordinates,
       });
     },
     onSuccess: () => {
@@ -45,8 +52,12 @@ export default function EmergencyForm() {
         description: "",
         location: "",
         peopleCount: 1,
+        coordinates: null,
         userId: "temp-user-id",
       });
+      setAudioBlob(null);
+      setIsRecording(false);
+      setIsPlaying(false);
     },
     onError: (error: any) => {
       toast({
@@ -56,6 +67,105 @@ export default function EmergencyForm() {
       });
     },
   });
+
+  // Get current location using Indian location API
+  const getCurrentLocation = async () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          setFormData(prev => ({ 
+            ...prev, 
+            coordinates: { lat: latitude, lng: longitude } 
+          }));
+          
+          // Use reverse geocoding to get Indian address
+          try {
+            const response = await fetch(
+              `https://api.postalpincode.in/coordinates/${latitude},${longitude}`
+            );
+            const data = await response.json();
+            if (data[0]?.Status === 'Success' && data[0]?.PostOffice?.length > 0) {
+              const place = data[0].PostOffice[0];
+              const address = `${place.Name}, ${place.District}, ${place.State} - ${place.Pincode}`;
+              setFormData(prev => ({ ...prev, location: address }));
+            }
+          } catch (error) {
+            console.error('Error getting location details:', error);
+            setFormData(prev => ({ 
+              ...prev, 
+              location: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` 
+            }));
+          }
+        },
+        (error) => {
+          toast({
+            title: "Location Error",
+            description: "Unable to get your location. Please enter manually.",
+            variant: "destructive",
+          });
+        }
+      );
+    } else {
+      toast({
+        title: "Location Not Supported",
+        description: "Geolocation is not supported by this browser.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Voice recording functionality
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      mediaRecorder.current = recorder;
+      setIsRecording(true);
+    } catch (error) {
+      toast({
+        title: "Microphone Error",
+        description: "Unable to access microphone. Please check permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder.current && isRecording) {
+      mediaRecorder.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const playRecording = () => {
+    if (audioBlob) {
+      const url = URL.createObjectURL(audioBlob);
+      const audio = new Audio(url);
+      audio.onended = () => setIsPlaying(false);
+      audio.play();
+      setIsPlaying(true);
+      audioRef.current = audio;
+    }
+  };
+
+  const stopPlaying = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,10 +255,21 @@ export default function EmergencyForm() {
                 className="flex-1"
                 data-testid="input-location"
               />
-              <Button type="button" variant="outline" size="icon" data-testid="button-get-location">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="icon" 
+                onClick={getCurrentLocation}
+                data-testid="button-get-location"
+              >
                 <MapPin className="h-4 w-4" />
               </Button>
             </div>
+            {formData.coordinates && (
+              <p className="text-xs text-muted-foreground">
+                📍 Location detected: {formData.coordinates.lat.toFixed(6)}, {formData.coordinates.lng.toFixed(6)}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -174,6 +295,70 @@ export default function EmergencyForm() {
               className="resize-none"
               data-testid="textarea-description"
             />
+          </div>
+
+          {/* Voice Message Section for Emergency */}
+          <div className="space-y-3">
+            <Label>Emergency Voice Message (Optional)</Label>
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4 space-y-3">
+              <p className="text-sm text-red-700 dark:text-red-300">
+                🎙️ Record a voice message for faster emergency response. This helps responders understand the urgency.
+              </p>
+              <div className="flex items-center gap-3">
+                {!isRecording ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={startRecording}
+                    className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-50"
+                    data-testid="button-start-emergency-recording"
+                  >
+                    <Mic className="h-4 w-4" />
+                    Start Emergency Recording
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={stopRecording}
+                    className="flex items-center gap-2 animate-pulse"
+                    data-testid="button-stop-emergency-recording"
+                  >
+                    <MicOff className="h-4 w-4" />
+                    Stop Recording
+                  </Button>
+                )}
+                
+                {audioBlob && (
+                  <div className="flex items-center gap-2">
+                    {!isPlaying ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={playRecording}
+                        data-testid="button-play-emergency-recording"
+                      >
+                        <Play className="h-3 w-3 mr-1" />
+                        Play
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={stopPlaying}
+                        data-testid="button-stop-emergency-playing"
+                      >
+                        <Square className="h-3 w-3 mr-1" />
+                        Stop
+                      </Button>
+                    )}
+                    <span className="text-xs text-red-700 dark:text-red-300">Emergency voice message recorded</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <Button 
