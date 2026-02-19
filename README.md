@@ -1,5 +1,7 @@
 🚨 RescueHub
 Smart Emergency Response & Disaster Management Platform
+
+
 📌 Overview
 
 RescueHub is a centralized emergency response platform designed to streamline communication between victims, volunteers, and administrators during critical situations. The system enables real-time incident reporting, task assignment, and coordinated rescue efforts to reduce response time and improve operational efficiency.
