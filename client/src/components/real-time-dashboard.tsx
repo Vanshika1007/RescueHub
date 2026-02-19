@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { RequestsResponse, VolunteersResponse, DonationsResponse, Request, Volunteer, Donation } from "@/types/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,19 +23,22 @@ export default function RealTimeDashboard() {
   const { isConnected, lastMessage } = useWebSocket();
 
   // Fetch initial data
-  const { data: requestsData, refetch: refetchRequests } = useQuery({
+  const { data: requestsData, refetch: refetchRequests } = useQuery<RequestsResponse, Error, Request[]>({
     queryKey: ["/api/emergency-requests"],
     refetchInterval: 30000, // Fallback refresh every 30 seconds
+    select: (data) => data?.requests || [],
   });
 
-  const { data: volunteersData, refetch: refetchVolunteers } = useQuery({
+  const { data: volunteersData, refetch: refetchVolunteers } = useQuery<VolunteersResponse, Error, Volunteer[]>({
     queryKey: ["/api/volunteers"],
     refetchInterval: 30000,
+    select: (data) => data?.volunteers || [],
   });
 
-  const { data: donationsData } = useQuery({
+  const { data: donationsData } = useQuery<DonationsResponse, Error, Donation[]>({
     queryKey: ["/api/donations/recent"],
     refetchInterval: 30000,
+    select: (data) => data?.donations || [],
   });
 
   // Handle WebSocket updates
@@ -57,9 +61,9 @@ export default function RealTimeDashboard() {
     }
   }, [lastMessage, refetchRequests, refetchVolunteers]);
 
-  const requests = requestsData?.requests || [];
-  const volunteers = volunteersData?.volunteers || [];
-  const donations = donationsData?.donations || [];
+  const requests = requestsData || [];
+  const volunteers = volunteersData || [];
+  const donations = donationsData || [];
 
   // Mock resource data - in real app would come from API
   const resources = [

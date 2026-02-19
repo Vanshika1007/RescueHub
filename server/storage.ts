@@ -4,13 +4,14 @@ import {
   type EmergencyRequest, type InsertEmergencyRequest, type Ngo, type InsertNgo,
   type Donation, type InsertDonation, type Campaign, type InsertCampaign,
   type ContactMessage, type InsertContactMessage
-} from "@shared/schema";
+} from "../shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -61,12 +62,24 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private checkDb() {
+    if (!db) {
+      throw new Error("Database is not configured. Set DATABASE_URL or use mock storage.");
+    }
+  }
+
   async getUser(id: string): Promise<User | undefined> {
+    this.checkDb();
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
 
+  async getUserById(id: string): Promise<User | undefined> {
+    return this.getUser(id);
+  }
+
   async getUserByUsername(username: string): Promise<User | undefined> {
+    this.checkDb();
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }

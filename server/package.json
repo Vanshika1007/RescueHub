@@ -1,0 +1,20 @@
+{
+  "name": "agni-aid-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node index.js",
+    "dev:server": "node index.js",
+    "start": "node index.js",
+    "watch": "nodemon index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^4.21.2",
+    "razorpay": "^2.9.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}

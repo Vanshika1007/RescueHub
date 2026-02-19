@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Working Razorpay Integration</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .button { background: #dc2626; color: white; padding: 15px 30px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 10px; display: block; width: 100%; }
+        .button:hover { background: #b91c1c; }
+        .status { padding: 15px; margin: 10px 0; border-radius: 5px; font-weight: bold; }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💳 Working Razorpay Integration</h1>
+        <div id="status" class="status info">Ready to test complete flow...</div>
+        
+        <button class="button" onclick="testCompleteFlow()">🎯 Test Complete Flow (₹20)</button>
+        <button class="button" onclick="testCompleteFlow50()">🎯 Test Complete Flow (₹50)</button>
+        
+        <div style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 5px;">
+            <h3>✅ This version will:</h3>
+            <ul>
+                <li>✅ Create proper backend order</li>
+                <li>✅ Open Razorpay with correct format</li>
+                <li>✅ Handle success/failure properly</li>
+                <li>✅ Save donation data</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    
+    <script>
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        async function testCompleteFlow(amount = 20) {
+            updateStatus(`🚀 Starting complete flow for ₹${amount}...`, 'info');
+            
+            if (!window.Razorpay) {
+                updateStatus('❌ Razorpay not loaded!', 'error');
+                return;
+            }
+
+            try {
+                // Step 1: Create backend order
+                updateStatus('📋 Creating backend order...', 'info');
+                
+                const orderResponse = await fetch('http://localhost:5000/api/create-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: amount,
+                        currency: 'INR'
+                    })
+                });
+
+                if (!orderResponse.ok) {
+                    throw new Error(`Backend failed: ${orderResponse.status}`);
+                }
+
+                const order = await orderResponse.json();
+                console.log('📋 Backend order:', order);
+                
+                if (!order.success || !order.id) {
+                    throw new Error('Invalid backend order');
+                }
+
+                updateStatus(`✅ Order created: ${order.id}`, 'success');
+
+                // Step 2: Open Razorpay
+                updateStatus('💳 Opening Razorpay...', 'info');
+                
+                const options = {
+                    key: 'rzp_test_1DP5mmOlF5G5ag',
+                    amount: order.amount,
+                    currency: order.currency,
+                    name: 'RescueHub Demo',
+                    description: `Donation of ₹${amount}`,
+                    order_id: order.id,
+                    handler: async function (response) {
+                        console.log('💰 Payment response:', response);
+                        updateStatus('🔍 Verifying payment...', 'info');
+                        
+                        try {
+                            // Step 3: Verify payment
+                            const verifyResponse = await fetch('http://localhost:5000/api/verify-payment', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    orderId: response.razorpay_order_id,
+                                    paymentId: response.razorpay_payment_id,
+                                    signature: response.razorpay_signature,
+                                    amount: amount
+                                })
+                            });
+
+                            const verifyResult = await verifyResponse.json();
+                            
+                            if (verifyResult.success) {
+                                updateStatus(`🎉 Payment Success! Donated ₹${amount} - ID: ${response.razorpay_payment_id}`, 'success');
+                            } else {
+                                throw new Error('Verification failed');
+                            }
+                        } catch (verifyError) {
+                            updateStatus('⚠️ Payment succeeded but verification failed', 'error');
+                            console.error('Verify error:', verifyError);
+                        }
+                    },
+                    prefill: {
+                        name: 'Demo User',
+                        email: 'demo@rescuehub.com',
+                        contact: '9999999999'
+                    },
+                    theme: {
+                        color: '#dc2626'
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            updateStatus('❌ Payment cancelled by user', 'error');
+                        }
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                
+                rzp.on('payment.failed', function (response) {
+                    updateStatus(`❌ Payment failed: ${response.error.description}`, 'error');
+                    console.error('Payment failed:', response.error);
+                });
+                
+                rzp.open();
+                updateStatus('✅ Razorpay opened! Complete the payment...', 'success');
+
+            } catch (error) {
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+                console.error('Complete error:', error);
+            }
+        }
+
+        function testCompleteFlow50() {
+            testCompleteFlow(50);
+        }
+
+        // Check readiness
+        window.addEventListener('load', function() {
+            if (window.Razorpay) {
+                updateStatus('✅ Ready! Click button to test complete donation flow', 'success');
+            } else {
+                updateStatus('❌ Razorpay not loaded', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

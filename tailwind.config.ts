@@ -1,122 +1,55 @@
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss'
 
 export default {
-  darkMode: ["class"],
-  content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
+  darkMode: ['class'],
+  content: [
+    './client/**/*.{js,ts,jsx,tsx}',
+    './client/src/**/*.{js,ts,jsx,tsx}',
+    './src/**/*.{js,ts,jsx,tsx}',
+  ],
   theme: {
     extend: {
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        card: {
-          DEFAULT: "var(--card)",
-          foreground: "var(--card-foreground)",
-        },
-        popover: {
-          DEFAULT: "var(--popover)",
-          foreground: "var(--popover-foreground)",
-        },
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: "var(--primary)",
-          foreground: "var(--primary-foreground)",
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
-          DEFAULT: "var(--secondary)",
-          foreground: "var(--secondary-foreground)",
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
         },
         muted: {
-          DEFAULT: "var(--muted)",
-          foreground: "var(--muted-foreground)",
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
         },
         accent: {
-          DEFAULT: "var(--accent)",
-          foreground: "var(--accent-foreground)",
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
         },
         destructive: {
-          DEFAULT: "var(--destructive)",
-          foreground: "var(--destructive-foreground)",
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
         },
-        border: "var(--border)",
-        input: "var(--input)",
-        ring: "var(--ring)",
-        chart: {
-          "1": "var(--chart-1)",
-          "2": "var(--chart-2)",
-          "3": "var(--chart-3)",
-          "4": "var(--chart-4)",
-          "5": "var(--chart-5)",
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
         },
-        sidebar: {
-          DEFAULT: "var(--sidebar-background)",
-          foreground: "var(--sidebar-foreground)",
-          primary: "var(--sidebar-primary)",
-          "primary-foreground": "var(--sidebar-primary-foreground)",
-          accent: "var(--sidebar-accent)",
-          "accent-foreground": "var(--sidebar-accent-foreground)",
-          border: "var(--sidebar-border)",
-          ring: "var(--sidebar-ring)",
-        },
-        emergency: {
-          red: "var(--emergency-red)",
-          orange: "var(--emergency-orange)",
-          blue: "var(--emergency-blue)",
-          green: "var(--emergency-green)",
-          yellow: "var(--emergency-yellow)",
-        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        'emergency-red': 'hsl(var(--emergency-red))',
+        'emergency-orange': 'hsl(var(--emergency-orange))',
+        'emergency-blue': 'hsl(var(--emergency-blue))',
+        'emergency-green': 'hsl(var(--emergency-green))',
       },
-      fontFamily: {
-        sans: ["var(--font-sans)"],
-        serif: ["var(--font-serif)"],
-        mono: ["var(--font-mono)"],
-      },
-      keyframes: {
-        "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
-        },
-        "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
-        },
-        "pulse-slow": {
-          "0%, 100%": {
-            opacity: "1",
-          },
-          "50%": {
-            opacity: ".5",
-          },
-        },
-        "bounce-slow": {
-          "0%, 100%": {
-            transform: "translateY(-25%)",
-            animationTimingFunction: "cubic-bezier(0.8,0,1,1)",
-          },
-          "50%": {
-            transform: "none",
-            animationTimingFunction: "cubic-bezier(0,0,0.2,1)",
-          },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "pulse-slow": "pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "bounce-slow": "bounce-slow 2s infinite",
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
-} satisfies Config;
+  plugins: [require('tailwindcss-animate')],
+} satisfies Config

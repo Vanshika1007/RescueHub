@@ -2,6 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
+import { MockStorage } from "./mock-storage";
+import { NotificationService } from "./notification-service";
+import { disasterAPIService } from "./disaster-api-service";
 import { 
   insertUserSchema, insertEmergencyRequestSchema, insertVolunteerSchema, 
   insertNgoSchema, insertDonationSchema, insertCampaignSchema, insertContactMessageSchema 
@@ -10,6 +13,19 @@ import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // Use mock storage if database is not available
+  let storageInstance: any = storage;
+  try {
+    // Try to test database connection
+    await storageInstance.getStats();
+  } catch (error) {
+    console.log("Database not available, using mock storage for development");
+    storageInstance = new MockStorage();
+  }
+
+  // Initialize notification service
+  const notificationService = new NotificationService(storageInstance);
 
   // WebSocket setup for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
@@ -39,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/register", async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
-      const user = await storage.createUser(userData);
+      const user = await storageInstance.createUser(userData);
       res.json({ user: { ...user, password: undefined } });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -48,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/user/:id", async (req, res) => {
     try {
-      const user = await storage.getUser(req.params.id);
+      const user = await storageInstance.getUser(req.params.id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -62,15 +78,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/emergency-requests", async (req, res) => {
     try {
       const requestData = insertEmergencyRequestSchema.parse(req.body);
-      const emergencyRequest = await storage.createEmergencyRequest(requestData);
+      const emergencyRequest = await storageInstance.createEmergencyRequest(requestData);
+      
+      // Notify nearby volunteers via SMS
+      console.log(`🚨 New emergency request created: ${emergencyRequest.title}`);
+      const notificationResult = await notificationService.notifyNearbyVolunteers(emergencyRequest);
+      
+      if (notificationResult.success) {
+        console.log(`✅ Notified ${notificationResult.notifiedCount} volunteers`);
+      } else {
+        console.log(`⚠️ Failed to notify volunteers: ${notificationResult.errors.join(', ')}`);
+      }
       
       // Broadcast new emergency request to all connected clients
       broadcast({
         type: 'new_emergency_request',
-        data: emergencyRequest
+        data: {
+          ...emergencyRequest,
+          notificationResult: {
+            notifiedCount: notificationResult.notifiedCount,
+            success: notificationResult.success
+          }
+        }
       });
 
-      res.json({ emergencyRequest });
+      res.json({ 
+        emergencyRequest,
+        notificationResult: {
+          notifiedCount: notificationResult.notifiedCount,
+          success: notificationResult.success,
+          errors: notificationResult.errors
+        }
+      });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
@@ -78,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/emergency-requests", async (req, res) => {
     try {
-      const requests = await storage.getActiveEmergencyRequests();
+      const requests = await storageInstance.getActiveEmergencyRequests();
       res.json({ requests });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -87,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/emergency-requests/:id", async (req, res) => {
     try {
-      const request = await storage.getEmergencyRequest(req.params.id);
+      const request = await storageInstance.getEmergencyRequest(req.params.id);
       if (!request) {
         return res.status(404).json({ message: "Emergency request not found" });
       }
@@ -100,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/emergency-requests/:id/status", async (req, res) => {
     try {
       const { status, assignedVolunteerId } = req.body;
-      const request = await storage.updateEmergencyRequestStatus(
+      const request = await storageInstance.updateEmergencyRequestStatus(
         req.params.id, 
         status, 
         assignedVolunteerId
@@ -124,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users/:userId/emergency-requests", async (req, res) => {
     try {
-      const requests = await storage.getUserEmergencyRequests(req.params.userId);
+      const requests = await storageInstance.getUserEmergencyRequests(req.params.userId);
       res.json({ requests });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -134,8 +173,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Volunteer routes
   app.post("/api/volunteers", async (req, res) => {
     try {
-      const volunteerData = insertVolunteerSchema.parse(req.body);
-      const volunteer = await storage.createVolunteer(volunteerData);
+      // Accept any string for userId to support mock/dev IDs while maintaining other validations
+      const relaxedSchema = insertVolunteerSchema.extend({ userId: z.string() });
+      const volunteerData = relaxedSchema.parse(req.body);
+      const volunteer = await storageInstance.createVolunteer(volunteerData);
       
       // Broadcast new volunteer
       broadcast({
@@ -151,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/volunteers", async (req, res) => {
     try {
-      const volunteers = await storage.getAvailableVolunteers();
+      const volunteers = await storageInstance.getAvailableVolunteers();
       res.json({ volunteers });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -160,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/volunteers/user/:userId", async (req, res) => {
     try {
-      const volunteer = await storage.getVolunteerByUserId(req.params.userId);
+      const volunteer = await storageInstance.getVolunteerByUserId(req.params.userId);
       if (!volunteer) {
         return res.status(404).json({ message: "Volunteer not found" });
       }
@@ -173,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/volunteers/:userId/availability", async (req, res) => {
     try {
       const { availability } = req.body;
-      const volunteer = await storage.updateVolunteerAvailability(req.params.userId, availability);
+      const volunteer = await storageInstance.updateVolunteerAvailability(req.params.userId, availability);
       if (!volunteer) {
         return res.status(404).json({ message: "Volunteer not found" });
       }
@@ -194,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ngos", async (req, res) => {
     try {
       const ngoData = insertNgoSchema.parse(req.body);
-      const ngo = await storage.createNgo(ngoData);
+      const ngo = await storageInstance.createNgo(ngoData);
       res.json({ ngo });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -203,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/ngos", async (req, res) => {
     try {
-      const ngos = await storage.getVerifiedNgos();
+      const ngos = await storageInstance.getVerifiedNgos();
       res.json({ ngos });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -212,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/ngos/user/:userId", async (req, res) => {
     try {
-      const ngo = await storage.getNgoByUserId(req.params.userId);
+      const ngo = await storageInstance.getNgoByUserId(req.params.userId);
       if (!ngo) {
         return res.status(404).json({ message: "NGO not found" });
       }
@@ -230,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       donationData.blockchainTxHash = `0x${Math.random().toString(16).substr(2, 8)}...${Math.random().toString(16).substr(2, 4)}`;
       donationData.status = "confirmed";
       
-      const donation = await storage.createDonation(donationData);
+      const donation = await storageInstance.createDonation(donationData);
       
       // Broadcast new donation
       broadcast({
@@ -247,7 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/donations/recent", async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      const donations = await storage.getRecentDonations(limit);
+      const donations = await storageInstance.getRecentDonations(limit);
       res.json({ donations });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -256,7 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users/:userId/donations", async (req, res) => {
     try {
-      const donations = await storage.getUserDonations(req.params.userId);
+      const donations = await storageInstance.getUserDonations(req.params.userId);
       res.json({ donations });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -267,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/campaigns", async (req, res) => {
     try {
       const campaignData = insertCampaignSchema.parse(req.body);
-      const campaign = await storage.createCampaign(campaignData);
+      const campaign = await storageInstance.createCampaign(campaignData);
       res.json({ campaign });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -276,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/campaigns", async (req, res) => {
     try {
-      const campaigns = await storage.getActiveCampaigns();
+      const campaigns = await storageInstance.getActiveCampaigns();
       res.json({ campaigns });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -285,7 +326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/campaigns/:id", async (req, res) => {
     try {
-      const campaign = await storage.getCampaign(req.params.id);
+      const campaign = await storageInstance.getCampaign(req.params.id);
       if (!campaign) {
         return res.status(404).json({ message: "Campaign not found" });
       }
@@ -299,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contact", async (req, res) => {
     try {
       const messageData = insertContactMessageSchema.parse(req.body);
-      const message = await storage.createContactMessage(messageData);
+      const message = await storageInstance.createContactMessage(messageData);
       
       // Broadcast new contact message for urgent priorities
       if (messageData.priority === 'emergency' || messageData.priority === 'urgent') {
@@ -317,7 +358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/contact-messages", async (req, res) => {
     try {
-      const messages = await storage.getContactMessages();
+      const messages = await storageInstance.getContactMessages();
       res.json({ messages });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -327,10 +368,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stats routes
   app.get("/api/stats", async (req, res) => {
     try {
-      const stats = await storage.getStats();
+      const stats = await storageInstance.getStats();
       res.json({ stats });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Disaster API routes
+  app.get("/api/disasters", async (req, res) => {
+    try {
+      const forceRefresh = req.query.refresh === 'true';
+      const disasters = await disasterAPIService.getDisasterData(forceRefresh);
+      res.json({ disasters });
+    } catch (error: any) {
+      console.error('Error fetching disasters:', error);
+      res.status(500).json({ message: 'Failed to fetch disaster data' });
+    }
+  });
+
+  app.get("/api/disasters/active", async (req, res) => {
+    try {
+      const activeDisasters = await disasterAPIService.getActiveDisasters();
+      res.json({ disasters: activeDisasters });
+    } catch (error: any) {
+      console.error('Error fetching active disasters:', error);
+      res.status(500).json({ message: 'Failed to fetch active disasters' });
+    }
+  });
+
+  app.get("/api/disasters/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const disaster = await disasterAPIService.getDisasterById(id);
+      
+      if (!disaster) {
+        return res.status(404).json({ message: 'Disaster not found' });
+      }
+      
+      res.json({ disaster });
+    } catch (error: any) {
+      console.error('Error fetching disaster:', error);
+      res.status(500).json({ message: 'Failed to fetch disaster details' });
+    }
+  });
+
+  app.post("/api/disasters/refresh", async (req, res) => {
+    try {
+      disasterAPIService.clearCache();
+      const disasters = await disasterAPIService.getDisasterData(true);
+      res.json({ message: 'Cache refreshed successfully', disasters });
+    } catch (error: any) {
+      console.error('Error refreshing disaster cache:', error);
+      res.status(500).json({ message: 'Failed to refresh disaster data' });
     }
   });
 

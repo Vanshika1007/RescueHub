@@ -3,14 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Clock, MapPin, Phone, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import type { RequestsResponse, Request } from "@/types/api";
+import { useI18n } from "@/lib/i18n";
 
 export default function EmergencyRequest() {
-  const { data: requestsData } = useQuery({
+  const { t } = useI18n();
+  const { data: activeRequests } = useQuery<RequestsResponse, Error, Request[]>({
     queryKey: ["/api/emergency-requests"],
     select: (data) => data?.requests || [],
   });
-
-  const activeRequests = requestsData || [];
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -38,43 +39,44 @@ export default function EmergencyRequest() {
   return (
     <div className="min-h-screen bg-muted/30" data-testid="page-emergency-request">
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-20">
+      <section className="relative overflow-hidden py-16 bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1593113598332-cd288d649433?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=600" 
             alt="Disaster relief volunteers helping community members" 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover opacity-20"
             data-testid="img-emergency-hero"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/70 to-secondary/80"></div>
         </div>
         
-        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-          <AlertTriangle className="h-16 w-16 mx-auto mb-6 text-white animate-pulse" />
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-shadow" data-testid="text-emergency-title">
-            Emergency Help Request
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-3xl mx-auto">
-            Fast, AI-powered emergency response system that works offline and connects you to immediate help.
-          </p>
-          
-          {/* Emergency Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4">
-              <div className="text-2xl font-bold text-white">24/7</div>
-              <div className="text-white/80 text-sm">Available</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4">
-              <div className="text-2xl font-bold text-white">&lt; 2 min</div>
-              <div className="text-white/80 text-sm">Response Time</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4">
-              <div className="text-2xl font-bold text-white">98%</div>
-              <div className="text-white/80 text-sm">Success Rate</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4">
-              <div className="text-2xl font-bold text-white">15+</div>
-              <div className="text-white/80 text-sm">Languages</div>
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="backdrop-blur-lg rounded-3xl p-8 md:p-12 shadow-2xl max-w-4xl mx-auto border border-red-500 hover:border-red-600 transition-colors duration-200">
+            <AlertTriangle className="h-16 w-16 mx-auto mb-6 text-red-500 animate-pulse" />
+            <h1 className="text-xl md:text-2xl font-bold mb-4 text-gray-800" data-testid="text-emergency-title">
+              {t("emergency_system_title")}
+            </h1>
+            <p className="text-sm md:text-base mb-8 text-gray-600 max-w-3xl mx-auto">
+              {t("emergency_system_subtitle")}
+            </p>
+            
+            {/* Emergency Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+              <div className="bg-gradient-to-br from-red-500 to-pink-500 rounded-xl p-4 text-white transition-transform duration-200 hover:scale-105 hover:shadow-xl cursor-default">
+                <div className="text-2xl font-bold">24/7</div>
+                <div className="text-red-100 text-sm">Available</div>
+              </div>
+              <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-xl p-4 text-white transition-transform duration-200 hover:scale-105 hover:shadow-xl cursor-default">
+                <div className="text-2xl font-bold">&lt; 2 min</div>
+                <div className="text-orange-100 text-sm">Response Time</div>
+              </div>
+              <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl p-4 text-white transition-transform duration-200 hover:scale-105 hover:shadow-xl cursor-default">
+                <div className="text-2xl font-bold">98%</div>
+                <div className="text-green-100 text-sm">Trusted Network</div>
+              </div>
+              <div className="bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl p-4 text-white transition-transform duration-200 hover:scale-105 hover:shadow-xl cursor-default">
+                <div className="text-2xl font-bold">6</div>
+                <div className="text-blue-100 text-sm">Languages</div>
+              </div>
             </div>
           </div>
         </div>
@@ -89,7 +91,7 @@ export default function EmergencyRequest() {
               <EmergencyForm />
               
               {/* Emergency Tips */}
-              <Card className="mt-8 bg-primary/10 border-primary/20">
+              <Card className="mt-8 bg-primary/10 border-primary/20 hover:border-red-500 transition-colors">
                 <CardHeader>
                   <CardTitle className="text-primary flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5" />
@@ -128,9 +130,9 @@ export default function EmergencyRequest() {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Emergency Contacts */}
-              <Card>
+              <Card className="border border-transparent hover:border-red-500 transition-colors duration-200">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-2xl">
                     <Phone className="h-5 w-5 text-primary" />
                     Emergency Contacts
                   </CardTitle>
@@ -160,25 +162,25 @@ export default function EmergencyRequest() {
               </Card>
 
               {/* Recent Requests */}
-              <Card>
+              <Card className="border border-transparent hover:border-red-500 transition-colors duration-200">
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
+                  <CardTitle className="flex items-center justify-between text-2xl">
+                    <span className="flex items-center gap-2 text-2xl">
                       <Clock className="h-5 w-5 text-accent" />
                       Recent Requests
                     </span>
-                    <Badge variant="secondary">{activeRequests.length}</Badge>
+                    <Badge variant="secondary">{activeRequests?.length || 0}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {activeRequests.length === 0 ? (
+                    {!activeRequests || activeRequests.length === 0 ? (
                       <div className="text-center text-muted-foreground py-8" data-testid="text-no-recent-requests">
                         <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No recent requests</p>
                       </div>
                     ) : (
-                      activeRequests.slice(0, 5).map((request: any) => (
+                      activeRequests?.slice(0, 5).map((request: any) => (
                         <div key={request.id} className="border border-border rounded-lg p-3" data-testid={`recent-request-${request.id}`}>
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center space-x-2">
@@ -210,7 +212,7 @@ export default function EmergencyRequest() {
               </Card>
 
               {/* What Happens Next */}
-              <Card className="bg-accent/10 border-accent/20">
+              <Card className="bg-accent/10 border-accent/20 hover:border-blue-500 transition-colors">
                 <CardHeader>
                   <CardTitle className="text-accent">What Happens Next?</CardTitle>
                 </CardHeader>

@@ -59,7 +59,8 @@ export default function VolunteerForm() {
 
       // Create user first
       const userResponse = await apiRequest("POST", "/api/auth/register", userData);
-      const userId = userResponse.user.id;
+      const userResponseData = await userResponse.json();
+      const userId = userResponseData.user.id;
 
       // Then create volunteer profile
       return await apiRequest("POST", "/api/volunteers", {
@@ -85,6 +86,7 @@ export default function VolunteerForm() {
         skills: [],
         vehicleType: "",
         location: "",
+        coordinates: null,
         userId: "temp-user-id",
       });
     },
@@ -131,8 +133,8 @@ export default function VolunteerForm() {
             ...prev, 
             coordinates: { lat: latitude, lng: longitude } 
           }));
-          
-          // Use reverse geocoding to get Indian address
+          // Try Indian Postal API first
+          let address = "";
           try {
             const response = await fetch(
               `https://api.postalpincode.in/coordinates/${latitude},${longitude}`
@@ -140,15 +142,38 @@ export default function VolunteerForm() {
             const data = await response.json();
             if (data[0]?.Status === 'Success' && data[0]?.PostOffice?.length > 0) {
               const place = data[0].PostOffice[0];
-              const address = `${place.Name}, ${place.District}, ${place.State} - ${place.Pincode}`;
-              setFormData(prev => ({ ...prev, location: address }));
+              address = `${place.Name}, ${place.District}, ${place.State} - ${place.Pincode}`;
             }
           } catch (error) {
-            console.error('Error getting location details:', error);
-            setFormData(prev => ({ 
-              ...prev, 
-              location: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` 
-            }));
+            // ignore, fallback below
+          }
+          // Fallback to OpenStreetMap Nominatim if no address
+          if (!address) {
+            try {
+              const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+              const osmData = await osmRes.json();
+              if (osmData && osmData.address) {
+                // Compose locality string: suburb/locality, city/town/village, state, country
+                const addr = osmData.address;
+                let locality = addr.suburb || addr.village || addr.town || addr.hamlet || addr.locality || "";
+                let city = addr.city || addr.county || addr.district || "";
+                let state = addr.state || "";
+                let country = addr.country || "";
+                address = [locality, city, state, country].filter(Boolean).join(", ");
+              } else if (osmData && osmData.display_name) {
+                address = osmData.display_name;
+              }
+            } catch (error) {
+              // ignore
+            }
+          }
+          setFormData(prev => ({ ...prev, location: address || "" }));
+          if (!address) {
+            toast({
+              title: "Location Error",
+              description: "Unable to fetch address. Please enter your location manually.",
+              variant: "destructive",
+            });
           }
         },
         (error) => {

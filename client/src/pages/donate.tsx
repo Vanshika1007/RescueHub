@@ -3,36 +3,45 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Heart, 
-  DollarSign, 
-  TrendingUp, 
-  Shield, 
-  Box,
+import {
+  Heart,
+  DollarSign,
+  Shield,
   CheckCircle,
   Users,
   Globe,
   Clock,
-  Award
+  Award,
+  Star,
+  Trophy,
+  Building,
+  Phone,
+  Mail,
+  Target,
+  TrendingUp
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import type { CampaignsResponse, DonationsResponse, Campaign, Donation } from "@/types/api";
+import { useI18n } from "@/lib/i18n";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Donate() {
-  const { data: campaignsData } = useQuery({
+  const { t } = useI18n();
+  const { toast } = useToast();
+
+  const { data: campaigns } = useQuery({
     queryKey: ["/api/campaigns"],
     select: (data) => data?.campaigns || [],
   });
 
-  const { data: donationsData } = useQuery({
+  const { data: recentDonations } = useQuery({
     queryKey: ["/api/donations/recent"],
     select: (data) => data?.donations || [],
   });
 
-  const campaigns = campaignsData || [];
-  const recentDonations = donationsData || [];
-  const currentCampaign = campaigns[0];
-
-  const campaignProgress = currentCampaign 
+  const currentCampaign = campaigns?.[0];
+  const campaignProgress = currentCampaign
     ? (parseFloat(currentCampaign.raisedAmount) / parseFloat(currentCampaign.targetAmount)) * 100
     : 78;
 
@@ -44,426 +53,438 @@ export default function Donate() {
     
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} min ago`;
+    
     const diffHours = Math.floor(diffMins / 60);
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   };
 
-  const donationTypes = [
-    { type: "Emergency Relief", amount: "$1.2M", percentage: 35, color: "bg-primary" },
-    { type: "Medical Supplies", amount: "$890K", percentage: 26, color: "bg-secondary" },
-    { type: "Food & Water", amount: "$645K", percentage: 19, color: "bg-accent" },
-    { type: "Shelter & Housing", amount: "$420K", percentage: 12, color: "bg-emergency-green" },
-    { type: "Cleanup & Recovery", amount: "$275K", percentage: 8, color: "bg-emergency-yellow" },
-  ];
-
   return (
-    <div className="min-h-screen bg-background" data-testid="page-donate">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-20">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=600" 
-            alt="Aid distribution and community support" 
-            className="w-full h-full object-cover"
-            data-testid="img-donate-hero"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/70 to-secondary/80"></div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
+      <div className="max-w-7xl mx-auto space-y-12 py-16 px-6">
         
-        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-          <Heart className="h-16 w-16 mx-auto mb-6 text-white animate-pulse" />
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-shadow" data-testid="text-donate-title">
-            Transparent <span className="text-secondary">Donations</span>
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-3xl mx-auto">
-            Blockchain-powered transparency ensures every dollar reaches those in need. Track your impact in real-time.
-          </p>
+        {/* Hero Section with Blurred Background Image */}
+        <div className="relative overflow-hidden rounded-3xl shadow-2xl">
+          {/* Background Image with Blur */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: `url('../src/photos/hero-background.png')`,
+              filter: 'blur(1px) brightness(1)',
+              transform: 'scale(1.1)'
+            }}
+          ></div>
           
-          {/* Donation Impact Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4">
-              <div className="text-2xl font-bold text-white">$3.2M+</div>
-              <div className="text-white/80 text-sm">Total Raised</div>
+          {/* Lighter overlay for better text visibility */}
+          <div className="absolute inset-0 bg-black/25"></div>
+          
+          {/* Additional gradient overlay for depth */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-black/20 to-black/30"></div>
+          
+          {/* Content */}
+          <div className="relative text-center py-16 px-8 text-white">
+            <div className="flex items-center justify-center space-x-4 mb-8">
+              <div className="p-4 bg-white/35 rounded-full shadow-2xl backdrop-blur-md border border-white/40">
+                <Heart className="h-12 w-12 text-white drop-shadow-2xl" />
+              </div>
+              <div>
+                <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-2 drop-shadow-2xl text-white">
+                  Transform Lives Through Giving
+                </h1>
+                <p className="text-xl text-white font-medium drop-shadow-xl">
+                  Join thousands of compassionate hearts making a difference every day
+                </p>
+              </div>
             </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4">
-              <div className="text-2xl font-bold text-white">15,789</div>
-              <div className="text-white/80 text-sm">Donors</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4">
-              <div className="text-2xl font-bold text-white">100%</div>
-              <div className="text-white/80 text-sm">Transparent</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4">
-              <div className="text-2xl font-bold text-white">18,432</div>
-              <div className="text-white/80 text-sm">Lives Helped</div>
+            
+            {/* Enhanced Statistics Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 max-w-5xl mx-auto">
+              <div className="bg-white/20 backdrop-blur-lg p-6 rounded-2xl border border-white/40 hover:bg-white/30 transition-all duration-300 hover:scale-105 shadow-2xl">
+                <div className="w-16 h-16 mx-auto mb-4 bg-white/30 rounded-xl flex items-center justify-center border border-white/40 shadow-lg">
+                  <DollarSign className="h-8 w-8 text-white drop-shadow-xl" />
+                </div>
+                <div className="text-3xl font-bold text-white mb-2 drop-shadow-xl">₹28.4Cr+</div>
+                <p className="text-white font-medium text-sm drop-shadow-lg">Total Impact Created</p>
+              </div>
+              
+              <div className="bg-white/20 backdrop-blur-lg p-6 rounded-2xl border border-white/40 hover:bg-white/30 transition-all duration-300 hover:scale-105 shadow-2xl">
+                <div className="w-16 h-16 mx-auto mb-4 bg-white/30 rounded-xl flex items-center justify-center border border-white/40 shadow-lg">
+                  <Users className="h-8 w-8 text-white drop-shadow-xl" />
+                </div>
+                <div className="text-3xl font-bold text-white mb-2 drop-shadow-xl">15,789</div>
+                <p className="text-white font-medium text-sm drop-shadow-lg">Generous Heroes</p>
+              </div>
+              
+              <div className="bg-white/20 backdrop-blur-lg p-6 rounded-2xl border border-white/40 hover:bg-white/30 transition-all duration-300 hover:scale-105 shadow-2xl">
+                <div className="w-16 h-16 mx-auto mb-4 bg-white/30 rounded-xl flex items-center justify-center border border-white/40 shadow-lg">
+                  <Shield className="h-8 w-8 text-white drop-shadow-xl" />
+                </div>
+                <div className="text-3xl font-bold text-white mb-2 drop-shadow-xl">100%</div>
+                <p className="text-white font-medium text-sm drop-shadow-lg">Verified & Secure</p>
+              </div>
+              
+              <div className="bg-white/20 backdrop-blur-lg p-6 rounded-2xl border border-white/40 hover:bg-white/30 transition-all duration-300 hover:scale-105 shadow-2xl">
+                <div className="w-16 h-16 mx-auto mb-4 bg-white/30 rounded-xl flex items-center justify-center border border-white/40 shadow-lg">
+                  <Heart className="h-8 w-8 text-white drop-shadow-xl" />
+                </div>
+                <div className="text-3xl font-bold text-white mb-2 drop-shadow-xl">18,432</div>
+                <p className="text-white font-medium text-sm drop-shadow-lg">Lives Transformed</p>
+              </div>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* Current Campaign */}
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Current Campaign</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Every donation is tracked on the blockchain for complete transparency and accountability.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Campaign Details */}
-            <div className="lg:col-span-2">
-              <Card className="shadow-lg p-8">
-                <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <h3 className="text-2xl font-bold text-foreground mb-2">
-                      {currentCampaign?.title || "Hurricane Relief Fund 2024"}
-                    </h3>
-                    <p className="text-muted-foreground">
-                      {currentCampaign?.description || "Providing immediate aid to hurricane-affected communities across the Southeast region."}
-                    </p>
-                  </div>
-                  <Badge className="bg-primary/10 text-primary">Active</Badge>
-                </div>
-
-                <img 
-                  src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400" 
-                  alt="Aid distribution and community support" 
-                  className="rounded-lg w-full h-64 object-cover mb-6"
-                  data-testid="img-campaign"
-                />
-
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-foreground font-medium">Progress</span>
-                    <span className="text-foreground font-medium">
-                      ${currentCampaign ? parseFloat(currentCampaign.raisedAmount).toLocaleString() : "2,347,890"} of ${currentCampaign ? parseFloat(currentCampaign.targetAmount).toLocaleString() : "3,000,000"}
-                    </span>
-                  </div>
-                  <Progress value={campaignProgress} className="h-3" />
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div data-testid="stat-campaign-donors">
-                      <div className="text-2xl font-bold text-foreground">12,456</div>
-                      <div className="text-sm text-muted-foreground">Donors</div>
-                    </div>
-                    <div data-testid="stat-campaign-days">
-                      <div className="text-2xl font-bold text-foreground">18</div>
-                      <div className="text-sm text-muted-foreground">Days Left</div>
-                    </div>
-                    <div data-testid="stat-campaign-helped">
-                      <div className="text-2xl font-bold text-foreground">8,932</div>
-                      <div className="text-sm text-muted-foreground">People Helped</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-5 gap-3">
-                  <Button variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20 font-medium">
-                    $25
-                  </Button>
-                  <Button variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20 font-medium">
-                    $50
-                  </Button>
-                  <Button variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20 font-medium">
-                    $100
-                  </Button>
-                  <Button variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20 font-medium">
-                    $250
-                  </Button>
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium">
-                    Custom
-                  </Button>
-                </div>
-              </Card>
-            </div>
-
-            {/* Donation Form & Info */}
-            <div className="space-y-6">
-              <DonationForm />
-
-              {/* Blockchain Transparency */}
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Box className="h-5 w-5 text-accent" />
-                    Blockchain Transparency
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <Box className="text-accent h-4 w-4" />
-                      <span className="text-sm font-medium text-foreground">Latest Block</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground font-mono">#4A7B9C</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="text-emergency-green h-4 w-4" />
-                      <span className="text-sm font-medium text-foreground">Verified Tx</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">2,847</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <Shield className="text-accent h-4 w-4" />
-                      <span className="text-sm font-medium text-foreground">Transparency</span>
-                    </div>
-                    <span className="text-xs text-emergency-green font-medium">100%</span>
-                  </div>
-                  <Button variant="ghost" className="w-full mt-4 text-center text-accent hover:text-accent/80 font-medium text-sm">
-                    View Full Blockchain Record
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+        {/* Main Donation Form */}
+        <div className="max-w-4xl mx-auto">
+          <DonationForm />
         </div>
-      </section>
 
-      {/* Donation Impact & Categories */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Where Your Money Goes</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Complete transparency on fund allocation across different relief categories.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h3 className="text-2xl font-bold text-foreground mb-6">Fund Allocation</h3>
+        {/* SECTIONS WITH LIGHT HEADERS */}
+        <div className="space-y-12">
+          
+          {/* Recent Donations with Light Header */}
+          <Card className="shadow-2xl border-0 overflow-hidden bg-gradient-to-br from-white to-orange-50">
+            <CardHeader className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 py-8 border-b border-gray-200 dark:border-gray-700">
+              <CardTitle className="flex items-center space-x-3 text-2xl">
+                <div className="p-3 bg-orange-100 dark:bg-orange-900/50 rounded-xl">
+                  <Clock className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <span>Recent Donations</span>
+              </CardTitle>
+              <p className="text-gray-600 dark:text-gray-400 text-base mt-2">
+                See the latest contributions from our amazing community of donors.
+              </p>
+            </CardHeader>
+            <CardContent className="p-8">
               <div className="space-y-4">
-                {donationTypes.map((category, index) => (
-                  <div key={index} className="space-y-2" data-testid={`category-${category.type.toLowerCase().replace(/\s+/g, '-')}`}>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-foreground font-medium">{category.type}</span>
-                      <span className="text-foreground font-medium">{category.amount} ({category.percentage}%)</span>
+                {[
+                  { donor: "Anonymous", amount: "₹25,000", usage: "Medical Supplies", time: "2 min ago", status: "Completed" },
+                  { donor: "Rajesh K.", amount: "₹10,000", usage: "Food Distribution", time: "5 min ago", status: "Processing" },
+                  { donor: "Anonymous", amount: "₹50,000", usage: "Shelter Materials", time: "8 min ago", status: "Completed" },
+                  { donor: "Priya S.", amount: "₹15,000", usage: "Water Purification", time: "12 min ago", status: "Processing" },
+                  { donor: "Anonymous", amount: "₹30,000", usage: "Emergency Kits", time: "15 min ago", status: "Completed" },
+                  { donor: "Amit T.", amount: "₹8,000", usage: "Education Support", time: "18 min ago", status: "Processing" },
+                  { donor: "Anonymous", amount: "₹75,000", usage: "Medical Equipment", time: "25 min ago", status: "Completed" },
+                  { donor: "Sunita M.", amount: "₹12,500", usage: "Clean Water", time: "32 min ago", status: "Completed" },
+                ].map((donation, index) => (
+                  <div key={index} className="w-full p-6 bg-gradient-to-r from-white to-orange-50 rounded-2xl hover:from-orange-50 hover:to-orange-100 transition-all duration-300 border border-orange-100 shadow-lg hover:shadow-xl">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                        {donation.donor.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-h-[48px] flex flex-col justify-center">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-bold text-gray-900 text-lg">{donation.donor}</div>
+                          <div className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-500 text-lg">{donation.amount}</div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-gray-600 text-sm">
+                            Donated for: <span className="text-gray-800 font-semibold">{donation.usage}</span>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-2 h-2 rounded-full ${donation.status === "Completed" ? "bg-green-500" : "bg-yellow-500"}`}></div>
+                            <Badge 
+                              variant={donation.status === "Completed" ? "secondary" : "outline"}
+                              className={`text-xs px-3 py-1 ${donation.status === "Completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700 border-yellow-200"}`}
+                            >
+                              {donation.status}
+                            </Badge>
+                            <span className="text-xs text-gray-500 font-medium">{donation.time}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <Progress value={category.percentage} className="h-2" />
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="mt-8 p-6 bg-accent/10 rounded-lg">
-                <h4 className="font-bold text-foreground mb-3 flex items-center gap-2">
-                  <Award className="h-5 w-5 text-accent" />
-                  Donation Benefits
-                </h4>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emergency-green" />
-                    <span className="text-foreground">100% transparency via blockchain</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emergency-green" />
-                    <span className="text-foreground">Real-time impact tracking</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emergency-green" />
-                    <span className="text-foreground">Tax-deductible receipts</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emergency-green" />
-                    <span className="text-foreground">Direct impact updates</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <img 
-                src="https://images.unsplash.com/photo-1593113598332-cd288d649433?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400" 
-                alt="Volunteers distributing aid to disaster victims" 
-                className="rounded-xl shadow-lg w-full"
-                data-testid="img-fund-allocation"
-              />
-
-              <Card className="bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/20">
-                <CardContent className="p-6">
-                  <h4 className="font-bold text-foreground mb-4">Impact Multiplier</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-primary">4x</div>
-                      <div className="text-sm text-muted-foreground">Efficiency Gain</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-secondary">95%</div>
-                      <div className="text-sm text-muted-foreground">Direct Impact</div>
+          {/* NGO Partners with Light Header */}
+          <Card className="shadow-2xl border-0 overflow-hidden bg-gradient-to-br from-white to-orange-50">
+            <CardHeader className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 py-8 border-b border-gray-200 dark:border-gray-700">
+              <CardTitle className="flex items-center space-x-3 text-2xl">
+                <div className="p-3 bg-orange-100 dark:bg-orange-900/50 rounded-xl">
+                  <Award className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <span>Trusted NGO Partners</span>
+              </CardTitle>
+              <p className="text-gray-600 dark:text-gray-400 text-base mt-2">
+                Our verified partners ensure your donations reach those who need them most.
+              </p>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="space-y-4">
+                {[
+                  { ngo: "Red Cross India", donations: "₹2.5Cr", efficiency: "98%", rating: "⭐⭐⭐⭐⭐", projects: 12, featured: false },
+                  { ngo: "Goonj", donations: "₹1.8Cr", efficiency: "96%", rating: "⭐⭐⭐⭐⭐", projects: 8, featured: false },
+                  { ngo: "Sewa International", donations: "₹1.2Cr", efficiency: "94%", rating: "⭐⭐⭐⭐", projects: 6, featured: false },
+                  { ngo: "CRY", donations: "₹95L", efficiency: "92%", rating: "⭐⭐⭐⭐", projects: 5, featured: false },
+                  { ngo: "Akshaya Patra", donations: "₹85L", efficiency: "95%", rating: "⭐⭐⭐⭐⭐", projects: 7, featured: false },
+                  { ngo: "Helpage India", donations: "₹78L", efficiency: "91%", rating: "⭐⭐⭐⭐", projects: 4, featured: false },
+                  { ngo: "Smile Foundation", donations: "₹67L", efficiency: "93%", rating: "⭐⭐⭐⭐", projects: 9, featured: false },
+                  { ngo: "United Way", donations: "₹54L", efficiency: "89%", rating: "⭐⭐⭐⭐", projects: 3, featured: false },
+                ].map((ngo, index) => (
+                  <div key={index} className={`w-full p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border ${
+                    ngo.featured ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white border-orange-600' : 'bg-gradient-to-r from-white to-orange-50 border-orange-100 hover:from-orange-50 hover:to-orange-100'
+                  }`}>
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold shadow-lg ${
+                        ngo.featured ? 'bg-white/20 text-white' : 'bg-gradient-to-br from-orange-400 to-red-500 text-white'
+                      }`}>
+                        {ngo.ngo.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-h-[48px] flex flex-col justify-center">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-bold text-lg">{ngo.ngo}</div>
+                          <div className={`font-bold text-lg ${ngo.featured ? 'text-white' : 'text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-500'}`}>{ngo.donations}</div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className={`text-sm ${ngo.featured ? 'text-white/90' : 'text-gray-600'}`}>
+                            {ngo.projects} active projects • {ngo.efficiency} efficiency
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className="text-sm">{ngo.rating}</div>
+                            <Badge 
+                              variant="secondary" 
+                              className={`text-xs px-3 py-1 ${ngo.featured ? "bg-white/20 text-white border-0" : "bg-green-100 text-green-700"}`}
+                            >
+                              Verified
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-4">
-                    Every $1 donated provides $4 worth of relief through our efficient coordination network.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </section>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Recent Donations */}
-      {recentDonations.length > 0 && (
-        <section className="py-16 bg-muted/30">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Recent Impact</h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                See how recent donations are making an immediate difference in disaster-affected communities.
+          {/* Donor Recognition with Light Header */}
+          <Card className="shadow-2xl border-0 overflow-hidden bg-gradient-to-br from-white to-orange-50">
+            <CardHeader className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 py-8 border-b border-gray-200 dark:border-gray-700">
+              <CardTitle className="flex items-center space-x-3 text-2xl">
+                <div className="p-3 bg-orange-100 dark:bg-orange-900/50 rounded-xl">
+                  <Trophy className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <span>Donor Recognition</span>
+              </CardTitle>
+              <p className="text-gray-600 dark:text-gray-400 text-base mt-2">
+                We celebrate the generous souls whose kindness creates miracles and transforms communities.
+              </p>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="grid md:grid-cols-3 gap-6">
+                {[
+                  { 
+                    tier: "Platinum Hero", 
+                    amount: "₹8.3L+", 
+                    donors: 23, 
+                    bgGradient: "from-gray-600 to-gray-700", 
+                    textColor: "text-white",
+                    description: "Ultimate champions of change making extraordinary impact",
+                    benefits: ["VIP donor events", "Direct impact reports", "Recognition plaques", "Personal thank you calls"]
+                  },
+                  { 
+                    tier: "Gold Champion", 
+                    amount: "₹4.15L+", 
+                    donors: 89, 
+                    bgGradient: "from-yellow-400 to-orange-500", 
+                    textColor: "text-white",
+                    description: "Dedicated supporters creating significant community transformation",
+                    benefits: ["Quarterly impact updates", "Donor appreciation events", "Social media recognition", "Tax optimization support"]
+                  },
+                  { 
+                    tier: "Silver Supporter", 
+                    amount: "₹83K+", 
+                    donors: 345, 
+                    bgGradient: "from-orange-500 to-red-500", 
+                    textColor: "text-white",
+                    description: "Compassionate contributors making consistent meaningful differences",
+                    benefits: ["Monthly newsletters", "Community donor wall", "Email thank you notes", "Impact photo updates"]
+                  },
+                ].map((tier, index) => (
+                  <div key={index} className={`p-8 bg-gradient-to-br ${tier.bgGradient} ${tier.textColor} rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 border border-white/20`}>
+                    <div className="text-center mb-6">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <Trophy className="h-8 w-8 text-white" />
+                      </div>
+                      <div className="font-bold text-xl mb-2">{tier.tier}</div>
+                      <div className="text-sm font-semibold opacity-90">{tier.amount} contribution</div>
+                    </div>
+                    
+                    <div className="text-center mb-6">
+                      <div className="text-sm font-semibold mb-3">{tier.donors} generous hearts</div>
+                      <Button 
+                        variant="secondary" 
+                        className="w-full bg-white/20 hover:bg-white/30 text-white border-0 font-medium text-sm py-3 backdrop-blur-sm"
+                      >
+                        Join This Tier
+                      </Button>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <p className="text-sm opacity-90 text-center mb-4">{tier.description}</p>
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-semibold mb-3 text-center">Benefits Include:</div>
+                      <div className="space-y-2">
+                        {tier.benefits.map((benefit, benefitIndex) => (
+                          <div key={benefitIndex} className="text-sm opacity-90 flex items-center space-x-2">
+                            <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                            <span>{benefit}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Corporate Partnerships with Light Header */}
+        <Card className="shadow-2xl border-0 overflow-hidden">
+          <CardHeader className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 py-12 border-b border-gray-200 dark:border-gray-700">
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-orange-100 dark:bg-orange-900/50 rounded-full flex items-center justify-center">
+                <Building className="h-10 w-10 text-orange-600 dark:text-orange-400" />
+              </div>
+              <CardTitle className="text-3xl mb-4">Corporate Partnership Program</CardTitle>
+              <p className="text-gray-600 dark:text-gray-400 text-lg max-w-3xl mx-auto">
+                Join leading companies in creating sustainable impact. Transform your CSR initiatives into meaningful change.
               </p>
             </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {recentDonations.slice(0, 6).map((donation: any) => (
-                <Card key={donation.id} className="shadow-lg" data-testid={`recent-donation-${donation.id}`}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
-                        A
+          </CardHeader>
+          
+          <CardContent className="p-12 bg-gradient-to-br from-white to-orange-50">
+            <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
+              <div className="space-y-8">
+                <div>
+                  <h4 className="text-2xl font-bold text-gray-900 mb-6">Partnership Benefits</h4>
+                  {[
+                    {
+                      number: "1",
+                      title: "Brand Recognition",
+                      desc: "Premier placement on our platform and marketing materials with dedicated showcase"
+                    },
+                    {
+                      number: "2", 
+                      title: "Employee Engagement",
+                      desc: "Custom volunteer portal and team building opportunities for meaningful participation"
+                    },
+                    {
+                      number: "3",
+                      title: "Impact Analytics", 
+                      desc: "Comprehensive dashboards and quarterly reports showing real-time donation impact"
+                    },
+                    {
+                      number: "4",
+                      title: "Tax Optimization",
+                      desc: "Complete documentation for tax benefits and enhanced CSR compliance reporting"
+                    }
+                  ].map((benefit, index) => (
+                    <div key={index} className="flex space-x-6 p-6 bg-gradient-to-r from-white to-orange-50 rounded-2xl hover:from-orange-50 hover:to-orange-100 transition-all duration-300 shadow-lg hover:shadow-xl border border-orange-100">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-red-500 text-white text-xl font-bold flex items-center justify-center shadow-lg">
+                        {benefit.number}
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {getTimeAgo(donation.createdAt)}
-                      </span>
-                    </div>
-                    <h4 className="font-semibold text-foreground mb-2">Anonymous Donor</h4>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Donated ${parseFloat(donation.amount).toFixed(2)} for {donation.donationType?.replace('_', ' ')}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="text-xs">
-                        {donation.donationType?.replace('_', ' ')}
-                      </Badge>
-                      <div className="text-xs text-accent font-mono">
-                        {donation.blockchainTxHash}
+                      <div className="flex-1">
+                        <div className="font-bold text-gray-900 mb-2 text-lg">{benefit.title}</div>
+                        <div className="text-gray-600 text-sm leading-relaxed">{benefit.desc}</div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Donor Recognition */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Donor Recognition</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              We honor the generous donors whose contributions make our mission possible.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { tier: "Platinum Hero", amount: "$10,000+", donors: 23, color: "bg-gradient-to-r from-gray-400 to-gray-600" },
-              { tier: "Gold Supporter", amount: "$5,000+", donors: 89, color: "bg-gradient-to-r from-yellow-400 to-yellow-600" },
-              { tier: "Community Champion", amount: "$1,000+", donors: 345, color: "bg-gradient-to-r from-primary to-secondary" },
-            ].map((tier, index) => (
-              <Card key={index} className="text-center shadow-lg">
-                <CardContent className="p-8">
-                  <div className={`w-20 h-20 ${tier.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                    <Award className="h-10 w-10 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-foreground mb-2">{tier.tier}</h3>
-                  <p className="text-lg font-semibold text-primary mb-2">{tier.amount}</p>
-                  <p className="text-sm text-muted-foreground mb-6">{tier.donors} generous donors</p>
-                  <Button variant="outline" className="w-full">
-                    Join This Tier
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Corporate Partnerships */}
-      <section className="py-16 bg-gradient-to-br from-accent/10 to-secondary/10">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Corporate Partners</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Join leading companies in making a meaningful impact on disaster relief efforts.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h3 className="text-2xl font-bold text-foreground mb-6">Partnership Benefits</h3>
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
-                  <div>
-                    <h4 className="font-semibold text-foreground">Brand Recognition</h4>
-                    <p className="text-sm text-muted-foreground">Your company logo featured prominently on our platform and marketing materials</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
-                  <div>
-                    <h4 className="font-semibold text-foreground">Employee Engagement</h4>
-                    <p className="text-sm text-muted-foreground">Dedicated portal for employee volunteer matching and team building</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
-                  <div>
-                    <h4 className="font-semibold text-foreground">Impact Reporting</h4>
-                    <p className="text-sm text-muted-foreground">Detailed quarterly reports showing exactly how your donations created impact</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-emergency-green rounded-full flex items-center justify-center text-white font-bold text-sm">4</div>
-                  <div>
-                    <h4 className="font-semibold text-foreground">Tax Benefits</h4>
-                    <p className="text-sm text-muted-foreground">Full tax deduction documentation and corporate social responsibility credits</p>
-                  </div>
+                  ))}
                 </div>
               </div>
 
-              <Button size="lg" className="mt-8 bg-primary text-primary-foreground px-8 py-4" data-testid="button-corporate-partnership">
-                <Users className="mr-2 h-5 w-5" />
-                Become a Corporate Partner
-              </Button>
-            </div>
+              <div className="space-y-8">
+                <div className="text-center">
+                  <Button className="w-full h-16 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-xl font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 rounded-2xl">
+                    <Building className="h-6 w-6 mr-3" />
+                    Become a Corporate Partner
+                  </Button>
+                </div>
 
-            <Card className="shadow-xl">
-              <CardContent className="p-8">
-                <h4 className="text-xl font-bold text-foreground mb-6">Partnership Tiers</h4>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg">
-                    <div>
-                      <div className="font-semibold text-foreground">Global Impact Partner</div>
-                      <div className="text-sm text-muted-foreground">$100,000+ annually</div>
-                    </div>
-                    <Award className="h-6 w-6 text-yellow-600" />
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg">
-                    <div>
-                      <div className="font-semibold text-foreground">Strategic Partner</div>
-                      <div className="text-sm text-muted-foreground">$50,000+ annually</div>
-                    </div>
-                    <Award className="h-6 w-6 text-gray-600" />
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg">
-                    <div>
-                      <div className="font-semibold text-foreground">Community Partner</div>
-                      <div className="text-sm text-muted-foreground">$25,000+ annually</div>
-                    </div>
-                    <Award className="h-6 w-6 text-orange-600" />
+                <div className="space-y-6 p-8 bg-gradient-to-br from-white to-orange-50 rounded-2xl border border-orange-100 shadow-lg">
+                  <h4 className="font-bold text-gray-900 text-xl text-center">Partnership Investment Tiers</h4>
+                  <div className="space-y-4">
+                    {[
+                      { tier: "Global Impact Partner", amount: "₹83L+ annually", bgGradient: "from-orange-500 to-red-500" },
+                      { tier: "Strategic Alliance Partner", amount: "₹41.5L+ annually", bgGradient: "from-orange-400 to-orange-500" },
+                      { tier: "Community Partner", amount: "₹20.75L+ annually", bgGradient: "from-yellow-400 to-orange-400" },
+                    ].map((tier, index) => (
+                      <div key={index} className={`p-5 bg-gradient-to-r ${tier.bgGradient} text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105`}>
+                        <div className="flex justify-between items-center">
+                          <div className="font-bold text-lg">{tier.tier}</div>
+                          <div className="font-bold text-lg">{tier.amount}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+
+                <div className="text-center space-y-4 p-8 bg-white rounded-2xl border-2 border-orange-200 shadow-lg">
+                  <div className="flex items-center justify-center space-x-2">
+                    <Phone className="h-6 w-6 text-orange-500" />
+                    <span className="font-bold text-gray-900 text-lg">Partnership Inquiry</span>
+                  </div>
+                  <div className="space-y-3 text-sm text-gray-600">
+                    <div className="flex items-center justify-center space-x-2">
+                      <Mail className="h-4 w-4 text-orange-500" />
+                      <span className="font-medium">partnerships@rescuehub.org</span>
+                    </div>
+                    <div className="flex items-center justify-center space-x-2">
+                      <Phone className="h-4 w-4 text-orange-500" />
+                      <span className="font-medium">+91 98765 43210</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Trust and Security Footer with Light Header Style */}
+        <div className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-3xl p-12 text-center shadow-2xl border border-gray-200 dark:border-gray-700">
+          <div className="max-w-4xl mx-auto">
+            <h3 className="text-4xl font-bold mb-8">Your Security is Our Priority</h3>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="flex flex-col items-center space-y-6">
+                <div className="p-6 bg-orange-100 dark:bg-orange-900/50 rounded-full shadow-lg">
+                  <Shield className="h-10 w-10 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <div className="font-bold text-xl mb-2">256-bit SSL Encryption</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm">Bank-grade security for all transactions</div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center space-y-6">
+                <div className="p-6 bg-orange-100 dark:bg-orange-900/50 rounded-full shadow-lg">
+                  <CheckCircle className="h-10 w-10 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <div className="font-bold text-xl mb-2">100% Verified</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm">All NGOs thoroughly vetted and approved</div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center space-y-6">
+                <div className="p-6 bg-orange-100 dark:bg-orange-900/50 rounded-full shadow-lg">
+                  <Trophy className="h-10 w-10 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <div className="font-bold text-xl mb-2">Award Winning</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm">Recognized for transparency and impact</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

@@ -17,41 +17,42 @@ import {
   Eye
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import type { StatsResponse, RequestsResponse, VolunteersResponse, DonationsResponse, Stats, Request, Volunteer, Donation } from "@/types/api";
+import { useI18n } from "@/lib/i18n";
 
 export default function Dashboard() {
-  const { data: statsData } = useQuery({
+  const { t } = useI18n();
+  const { data: stats } = useQuery<StatsResponse, Error, Stats>({
     queryKey: ["/api/stats"],
     refetchInterval: 30000, // Refresh every 30 seconds
+    select: (data) => data?.stats || {
+      activeCases: 0,
+      volunteers: 0,
+      donationsRaised: "0",
+      livesHelped: 0,
+    },
   });
 
-  const { data: requestsData } = useQuery({
+  const { data: requests } = useQuery<RequestsResponse, Error, Request[]>({
     queryKey: ["/api/emergency-requests"],
     refetchInterval: 15000, // More frequent for real-time feel
+    select: (data) => data?.requests || [],
   });
 
-  const { data: volunteersData } = useQuery({
+  const { data: volunteers } = useQuery<VolunteersResponse, Error, Volunteer[]>({
     queryKey: ["/api/volunteers"],
     refetchInterval: 30000,
+    select: (data) => data?.volunteers || [],
   });
 
-  const { data: donationsData } = useQuery({
+  const { data: recentDonations } = useQuery<DonationsResponse, Error, Donation[]>({
     queryKey: ["/api/donations/recent"],
     refetchInterval: 30000,
+    select: (data) => data?.donations || [],
   });
 
-  const stats = statsData?.stats || {
-    activeCases: 0,
-    volunteers: 0,
-    donationsRaised: "0",
-    livesHelped: 0,
-  };
-
-  const requests = requestsData?.requests || [];
-  const volunteers = volunteersData?.volunteers || [];
-  const recentDonations = donationsData?.donations || [];
-
   // Calculate additional metrics
-  const criticalRequests = requests.filter((req: any) => req.urgency === 'critical').length;
+  const criticalRequests = requests?.filter((req: any) => req.urgency === 'critical').length || 0;
   const responseTime = "2.3"; // Would come from actual analytics
   const successRate = "94"; // Would come from actual analytics
 
@@ -86,21 +87,21 @@ export default function Dashboard() {
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2" data-testid="text-dashboard-title">
-                Command Center
+                {t("command_center")}
               </h1>
               <p className="text-lg text-muted-foreground">
-                Real-time coordination and analytics for disaster relief operations
+                {t("command_center_subtitle")}
               </p>
             </div>
             
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emergency-green/10 text-emergency-green">
                 <div className="w-2 h-2 rounded-full bg-emergency-green animate-pulse" />
-                <span className="text-sm font-medium">System Operational</span>
+                <span className="text-sm font-medium">{t("system_operational")}</span>
               </div>
               <Button variant="outline" data-testid="button-export-data">
                 <BarChart3 className="mr-2 h-4 w-4" />
-                Export Data
+                {t("export_data")}
               </Button>
             </div>
           </div>
@@ -116,7 +117,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Active Cases</p>
-                    <p className="text-3xl font-bold text-foreground">{stats.activeCases.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-foreground">{stats?.activeCases.toLocaleString() || "0"}</p>
                     <p className="text-sm text-muted-foreground">
                       <span className="text-primary font-medium">{criticalRequests}</span> critical
                     </p>
@@ -133,7 +134,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Active Volunteers</p>
-                    <p className="text-3xl font-bold text-foreground">{stats.volunteers.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-foreground">{stats?.volunteers.toLocaleString() || "0"}</p>
                     <p className="text-sm text-emergency-green">
                       <TrendingUp className="inline h-3 w-3 mr-1" />
                       +12% this week
@@ -152,7 +153,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Donations Raised</p>
                     <p className="text-3xl font-bold text-foreground">
-                      ${parseFloat(stats.donationsRaised).toLocaleString(undefined, {maximumFractionDigits: 0})}M
+                      ${parseFloat(stats?.donationsRaised || "0").toLocaleString(undefined, {maximumFractionDigits: 0})}M
                     </p>
                     <p className="text-sm text-secondary">
                       <TrendingUp className="inline h-3 w-3 mr-1" />
@@ -171,7 +172,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Lives Helped</p>
-                    <p className="text-3xl font-bold text-foreground">{stats.livesHelped.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-foreground">{stats?.livesHelped.toLocaleString() || "0"}</p>
                     <p className="text-sm text-accent">
                       <CheckCircle className="inline h-3 w-3 mr-1" />
                       {successRate}% success rate
@@ -319,7 +320,7 @@ export default function Dashboard() {
             <CardContent>
               <div className="space-y-4">
                 {/* Emergency Requests */}
-                {requests.slice(0, 3).map((request: any) => (
+                {requests?.slice(0, 3).map((request: any) => (
                   <div key={request.id} className="flex items-start gap-4 p-4 bg-muted/50 rounded-lg" data-testid={`timeline-request-${request.id}`}>
                     <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white">
                       <AlertTriangle className="h-5 w-5" />
@@ -340,7 +341,7 @@ export default function Dashboard() {
                 ))}
 
                 {/* Donations */}
-                {recentDonations.slice(0, 2).map((donation: any) => (
+                {recentDonations?.slice(0, 2).map((donation: any) => (
                   <div key={donation.id} className="flex items-start gap-4 p-4 bg-muted/50 rounded-lg" data-testid={`timeline-donation-${donation.id}`}>
                     <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-white">
                       <DollarSign className="h-5 w-5" />
@@ -363,7 +364,7 @@ export default function Dashboard() {
                 ))}
 
                 {/* Volunteers */}
-                {volunteers.slice(0, 2).map((volunteer: any) => (
+                {volunteers?.slice(0, 2).map((volunteer: any) => (
                   <div key={volunteer.id} className="flex items-start gap-4 p-4 bg-muted/50 rounded-lg" data-testid={`timeline-volunteer-${volunteer.id}`}>
                     <div className="w-10 h-10 bg-emergency-green rounded-full flex items-center justify-center text-white">
                       <Users className="h-5 w-5" />

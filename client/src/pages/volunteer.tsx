@@ -1,4 +1,4 @@
-import VolunteerForm from "@/components/volunteer-form";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,20 +15,21 @@ import {
   CheckCircle
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import type { VolunteersResponse, RequestsResponse, Volunteer, Request } from "@/types/api";
+import { useI18n } from "@/lib/i18n";
 
 export default function Volunteer() {
-  const { data: volunteersData } = useQuery({
+  const { t } = useI18n();
+  
+  const { data: volunteers } = useQuery<VolunteersResponse, Error, Volunteer[]>({
     queryKey: ["/api/volunteers"],
     select: (data) => data?.volunteers || [],
   });
 
-  const { data: requestsData } = useQuery({
+  const { data: activeRequests } = useQuery<RequestsResponse, Error, Request[]>({
     queryKey: ["/api/emergency-requests"],
     select: (data) => data?.requests || [],
   });
-
-  const volunteers = volunteersData || [];
-  const activeRequests = requestsData || [];
 
   const skillCategories = [
     { name: "Medical Training", count: 34, color: "bg-primary" },
@@ -53,6 +54,9 @@ export default function Volunteer() {
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   };
 
+  const handleJoinNow = () => {
+    window.location.href = '/register';
+  };
   return (
     <div className="min-h-screen bg-background" data-testid="page-volunteer">
       {/* Hero Section */}
@@ -61,10 +65,10 @@ export default function Volunteer() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl md:text-6xl font-bold mb-6 text-foreground" data-testid="text-volunteer-title">
-                Join Our <span className="text-primary">Volunteer</span> Network
+                {t("volunteer_title")}
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
-                Make a difference when it matters most. Our AI-powered matching system connects your skills with urgent needs in real-time.
+                {t("volunteer_subtitle")}
               </p>
 
               {/* Impact Stats */}
@@ -82,12 +86,17 @@ export default function Volunteer() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-primary text-primary-foreground px-8 py-4" data-testid="button-join-now">
+                <Button
+                  size="lg"
+                  className="bg-primary text-primary-foreground px-8 py-4"
+                  data-testid="button-join-now"
+                  onClick={handleJoinNow}
+                >
                   <Heart className="mr-2 h-5 w-5" />
-                  Join Now
+                  {t("join_now")}
                 </Button>
                 <Button variant="outline" size="lg" className="px-8 py-4" data-testid="button-learn-more">
-                  Learn More
+                  {t("learn_more")}
                 </Button>
               </div>
             </div>
@@ -108,9 +117,9 @@ export default function Volunteer() {
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Skills We Need</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">{t("skills_title")}</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Every skill makes a difference. Find how your expertise can help save lives and rebuild communities.
+              {t("skills_subtitle")}
             </p>
           </div>
 
@@ -169,158 +178,146 @@ export default function Volunteer() {
         </div>
       </section>
 
-      {/* Registration & Dashboard */}
-      <section className="py-16 bg-background">
+  {/* Registration & Dashboard section removed. 'Join Now' button opens registration page. */}
+
+      {/* Gamification & Leaderboard */}
+      <section className="py-16 bg-gradient-to-br from-blue-50 to-purple-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Registration Form */}
-            <div className="lg:col-span-2">
-              <VolunteerForm />
-            </div>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">🏆 {t("volunteer_leaderboard_title")}</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              {t("volunteer_leaderboard_subtitle")}
+            </p>
+          </div>
 
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Active Volunteers */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    Active Volunteers
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {volunteers.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-6" data-testid="text-no-volunteers">
-                        <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No volunteers registered yet</p>
+          <div className="grid lg:grid-cols-3 gap-8 mb-12">
+            {/* Points System */}
+            <Card className="p-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-6 w-6 text-yellow-500" />
+                  {t("points_system")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                  <span className="text-sm font-medium">Complete Emergency Response</span>
+                  <Badge className="bg-green-500">+50 pts</Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                  <span className="text-sm font-medium">Help with Medical Aid</span>
+                  <Badge className="bg-blue-500">+30 pts</Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                  <span className="text-sm font-medium">Transport Supplies</span>
+                  <Badge className="bg-purple-500">+20 pts</Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                  <span className="text-sm font-medium">Daily Check-in</span>
+                  <Badge className="bg-orange-500">+5 pts</Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Current User Stats */}
+            <Card className="p-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-6 w-6 text-green-500" />
+                  {t("your_progress")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-primary mb-2">1,250</div>
+                  <div className="text-sm text-muted-foreground">Total Points</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Next Level</span>
+                    <span>750 pts to go</span>
+                  </div>
+                  <Progress value={62} className="h-2" />
+                  <div className="text-xs text-muted-foreground text-center">Level 3 - Hero Helper</div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-green-600">12</div>
+                    <div className="text-xs text-muted-foreground">Missions</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-blue-600">8</div>
+                    <div className="text-xs text-muted-foreground">Lives Saved</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Badges */}
+            <Card className="p-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="h-6 w-6 text-yellow-500" />
+                  {t("your_badges")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                    <div className="text-2xl mb-1">🥇</div>
+                    <div className="text-xs font-medium">First Responder</div>
+                  </div>
+                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <div className="text-2xl mb-1">🏥</div>
+                    <div className="text-xs font-medium">Medical Hero</div>
+                  </div>
+                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                    <div className="text-2xl mb-1">🚑</div>
+                    <div className="text-xs font-medium">Rescue Master</div>
+                  </div>
+                  <div className="text-center p-3 bg-purple-50 rounded-lg">
+                    <div className="text-2xl mb-1">⭐</div>
+                    <div className="text-xs font-medium">Top Volunteer</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top Volunteers Leaderboard */}
+          <Card className="p-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="h-6 w-6 text-yellow-500" />
+                {t("top_volunteers")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[
+                  { name: "Dr. Sarah Chen", points: 2450, missions: 18, badge: "🥇", level: "Legend" },
+                  { name: "Marcus Johnson", points: 2200, missions: 15, badge: "🥈", level: "Champion" },
+                  { name: "Elena Rodriguez", points: 1980, missions: 14, badge: "🥉", level: "Expert" },
+                  { name: "Raj Patel", points: 1750, missions: 12, badge: "4️⃣", level: "Hero" },
+                  { name: "Lisa Wang", points: 1620, missions: 11, badge: "5️⃣", level: "Helper" }
+                ].map((volunteer, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="text-2xl">{volunteer.badge}</div>
+                      <div>
+                        <div className="font-semibold text-foreground">{volunteer.name}</div>
+                        <div className="text-sm text-muted-foreground">{volunteer.missions} missions • {volunteer.level}</div>
                       </div>
-                    ) : (
-                      volunteers.slice(0, 5).map((volunteer: any, index: number) => (
-                        <div key={volunteer.id} className="flex items-center space-x-3" data-testid={`volunteer-list-${volunteer.id}`}>
-                          <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-medium">
-                            {volunteer.user?.fullName?.charAt(0) || 'V'}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium text-foreground text-sm">
-                              {volunteer.user?.fullName || `Volunteer ${index + 1}`}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">
-                              {volunteer.skills?.[0] || 'General Support'} • {volunteer.location || 'Location not set'}
-                            </p>
-                          </div>
-                          <div className="flex items-center">
-                            <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                            <span className="text-xs text-muted-foreground ml-1">
-                              {volunteer.rating || '5.0'}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Urgent Needs */}
-              <Card className="bg-primary/10 border-primary/20">
-                <CardHeader>
-                  <CardTitle className="text-primary flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Urgent Needs
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {activeRequests.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-6" data-testid="text-no-urgent-needs">
-                        <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">No urgent requests at the moment</p>
-                      </div>
-                    ) : (
-                      activeRequests.filter((req: any) => req.urgency === 'critical').slice(0, 3).map((request: any) => (
-                        <div key={request.id} className="bg-white rounded-lg p-3" data-testid={`urgent-request-${request.id}`}>
-                          <div className="flex items-start justify-between mb-2">
-                            <span className="font-medium text-foreground text-sm">{request.title || request.type}</span>
-                            <Badge className="bg-primary text-primary-foreground text-xs">Critical</Badge>
-                          </div>
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {request.location}
-                            <span className="mx-2">•</span>
-                            <Clock className="h-3 w-3 mr-1" />
-                            {getTimeAgo(request.createdAt)}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Volunteer Benefits */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-secondary" />
-                    Volunteer Benefits
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-emergency-green" />
-                    <span className="text-sm text-foreground">Verified Hero status & badges</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-emergency-green" />
-                    <span className="text-sm text-foreground">Skills-based matching system</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-emergency-green" />
-                    <span className="text-sm text-foreground">Real-time coordination tools</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-emergency-green" />
-                    <span className="text-sm text-foreground">Community recognition</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-emergency-green" />
-                    <span className="text-sm text-foreground">Training & certification</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-emergency-green" />
-                    <span className="text-sm text-foreground">Impact tracking dashboard</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Stats */}
-              <Card className="bg-accent/10 border-accent/20">
-                <CardHeader>
-                  <CardTitle className="text-accent">Your Impact Potential</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-foreground">Response Time</span>
-                    <span className="font-medium text-accent">&lt; 15 min avg</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-foreground">People Helped/Month</span>
-                    <span className="font-medium text-accent">12-25 avg</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-foreground">Success Rate</span>
-                    <span className="font-medium text-accent">94%</span>
-                  </div>
-                  <div className="pt-2 border-t border-accent/20">
-                    <div className="text-xs text-muted-foreground text-center">
-                      Join thousands making a real difference
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-primary">{volunteer.points.toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">points</div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
@@ -328,9 +325,9 @@ export default function Volunteer() {
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Volunteer Stories</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">{t("volunteer_stories_title")}</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Hear from volunteers who are making a real difference in their communities.
+              {t("volunteer_stories_subtitle")}
             </p>
           </div>
 
